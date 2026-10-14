@@ -299,7 +299,7 @@ function limb(pts,w,col){
   ctx.strokeStyle=F(col);ctx.lineWidth=w;ctx.beginPath();ctx.moveTo(pts[0][0],pts[0][1]);for(let i=1;i<pts.length;i++)ctx.lineTo(pts[i][0],pts[i][1]);ctx.stroke();
   ctx.fillStyle=F(col);ctx.beginPath();for(let i=1;i<pts.length-1;i++)ell(pts[i][0],pts[i][1],w*.85,w*.85);ctx.fill();
 }
-function glowDot(x,y,r,col,a){ctx.globalAlpha=a;ctx.fillStyle=col;ctx.beginPath();ell(x,y,r,r);ctx.fill();ctx.globalAlpha=1}
+function glowDot(x,y,r,col,a){if(!(r>0))return;ctx.globalAlpha=a;ctx.fillStyle=col;ctx.beginPath();ell(x,y,r,r);ctx.fill();ctx.globalAlpha=1}
 function allyRing(rx,ry,col){col=col||ALLY;ctx.fillStyle=col+'24';ctx.strokeStyle=col+'c0';ctx.lineWidth=1.6;ctx.beginPath();ell(0,0,rx,ry);ctx.fill();ctx.stroke()}
 
 // ---------------------------------------------------------------- skulls & helmets
@@ -1309,7 +1309,7 @@ function collect(s){
 }
 
 // ===================================================================== render: skeletons
-function rising(e){if(e.state!=='rise')return;const k=1-e.t/.5;ctx.scale(1,.15+.85*easeOut(k));
+function rising(e){if(e.state!=='rise')return;const k=clamp(1-e.t/.5,0,1);ctx.scale(1,.15+.85*easeOut(k));
   if(!FLASH){ctx.save();ctx.globalCompositeOperation='lighter';glowDot(0,-10,18*(1-k)+4,e.col||ALLY,.3*(1-k));ctx.restore()}}
 function drawSkeleton(e){
   const d=DEF[e.type],s=d.s,armored=e.type==='giant',brute=e.type==='brute';
@@ -1647,6 +1647,8 @@ function drawTelegraph(e){
 
 // ===================================================================== render: frame
 function render(){
+  // start every frame from a clean canvas state, so one failed draw can never leave blending or alpha stuck
+  if(ctx.reset)ctx.reset();else{ctx.globalCompositeOperation='source-over';ctx.globalAlpha=1;ctx.setLineDash([])}
   ctx.setTransform(DPR,0,0,DPR,0,0);ctx.fillStyle='#07080a';ctx.fillRect(0,0,W,H);
   const sx=shake?rand(-shake,shake):0,sy=shake?rand(-shake,shake):0;
   const ox=W/2-cam.x*Z+sx,oy=H/2-cam.y*Z+sy;
@@ -1872,7 +1874,7 @@ function decEnt(map,a,extra){
     if(type==='dragon'){if(a[4]!==e.face)flipFace(e,a[4]===-1?-1:1)}else e.face=a[4]===-1?-1:1}
   e.tx=+a[2]||0;e.ty=+a[3]||0;
   const f=a[4]===-1?-1:1;if(f!==e.face){if(type==='dragon')flipFace(e,f);else e.face=f}
-  const st=STATES[a[5]]||'chase';if(st!==e.state){e.prev=e.state;e.state=st;e.changed=true}
+  const st=STATES[a[5]]||'chase';if(st!==e.state){e.prev=e.state;e.state=st;e.changed=true;if(st==='rise')e.t=.5}
   e.twang=(+a[6]||0)/100;const hp=clamp(+a[7]||0,0,100)/100*e.max;if(hp<e.hp-.5&&!e.isNew)e.flash=.09;e.hp=hp;
   if(a.length>8){e.aim=(+a[8]||0)/100;e.t=(+a[9]||0)/100;e.atk=ATKS[a[10]]||null}
   if(type==='dragon'){e.tz=+a[11]||0;e.headAim=(+a[12]||0)/100;e.tang=(+a[13]||0)/100;e.breathing=!!a[14]}
