@@ -127,6 +127,34 @@ kbd{font-family:var(--body);font-weight:700;font-size:.78rem;letter-spacing:.06e
 #lb-players i{width:12px;height:12px;border-radius:50%;box-shadow:0 0 8px currentColor;background:currentColor;flex:none}
 #lb-players small{margin-left:auto;color:var(--bone-dim);letter-spacing:.1em;text-transform:uppercase;font-size:.72rem;white-space:nowrap}
 #room-tag b{font-weight:500}
+/* touch controls: floating move stick on the left, fixed reap stick bottom-right with actions fanned around it */
+#touch{position:fixed;inset:0;pointer-events:none;z-index:5;--sx:calc(env(safe-area-inset-right,0px) + 22px);--sy:calc(env(safe-area-inset-bottom,0px) + 22px)}
+#touch *{-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;user-select:none;-webkit-user-select:none}
+#t-zone{position:fixed;left:0;bottom:0;width:55%;top:calc(env(safe-area-inset-top,0px) + 120px);pointer-events:auto;touch-action:none}
+.stick{position:fixed;width:112px;height:112px;border-radius:50%;border:2px solid rgba(236,229,210,.45);background:rgba(10,10,14,.35);box-shadow:0 0 0 2px rgba(8,8,10,.5);touch-action:none}
+.stick i{position:absolute;left:50%;top:50%;width:50px;height:50px;margin:-25px 0 0 -25px;border-radius:50%;background:rgba(236,229,210,.85);border:2px solid var(--ink);box-shadow:0 0 14px rgba(191,232,255,.35)}
+#t-stickL{transform:translate(-50%,-50%);pointer-events:none}
+#t-stickR{right:var(--sx);bottom:var(--sy);width:132px;height:132px;pointer-events:auto}
+#t-stickR span{position:absolute;left:0;right:0;top:calc(100% + 2px);text-align:center;font-family:var(--display);font-size:.8rem;letter-spacing:.14em;color:var(--bone-dim);text-shadow:0 1px 0 var(--ink)}
+.tb{position:fixed;width:56px;height:56px;border-radius:50%;pointer-events:auto;touch-action:none;font:inherit;font-family:var(--display);font-size:.78rem;letter-spacing:.06em;
+  color:var(--bone);background:rgba(10,10,14,.6);border:2px solid rgba(236,229,210,.75);box-shadow:0 0 0 2px var(--ink);display:grid;place-items:center;padding:0}
+.tb.on{background:var(--bone);color:var(--ink)}
+.tb.cd{opacity:.4}
+#t-roll{right:calc(var(--sx) + 150px);bottom:calc(var(--sy) + 38px)}
+#t-raise{right:calc(var(--sx) + 130px);bottom:calc(var(--sy) + 102px)}
+#t-cmd{right:calc(var(--sx) + 76px);bottom:calc(var(--sy) + 143px)}
+#t-fire{right:calc(var(--sx) + 9px);bottom:calc(var(--sy) + 146px);border-color:var(--soulfire);color:var(--soulfire)}
+.t-top{position:fixed;left:16px;top:calc(env(safe-area-inset-top,0px) + 112px);display:flex;gap:8px}
+.t-top .tb{position:static;width:40px;height:40px;font-family:var(--body);font-weight:700;font-size:1.05rem}
+body.touch #boss{bottom:calc(env(safe-area-inset-bottom,0px) + 240px);width:min(300px,calc(100% - 32px))}
+body.touch #hint{bottom:calc(env(safe-area-inset-bottom,0px) + 300px);max-width:calc(100% - 32px)}
+@media (max-height:520px){
+  body.touch #boss{bottom:auto;top:calc(env(safe-area-inset-top,0px) + 118px);width:min(260px,40vw)}
+  body.touch #toast,body.touch #tutor{top:calc(env(safe-area-inset-top,0px) + 162px);left:calc(env(safe-area-inset-left,0px) + 16px);transform:none;width:min(52%,440px);text-align:left}
+  body.touch #tutor{font-size:1.3rem;animation:none}
+  body.touch #toast{font-size:1.05rem}
+  body.touch #hint{bottom:calc(env(safe-area-inset-bottom,0px) + 12px);left:calc(env(safe-area-inset-left,0px) + 16px);transform:none;text-align:left;max-width:42%}
+}
 @media (max-width:620px){
   .up{grid-template-columns:minmax(0,1fr) auto}
   .up .btn{grid-row:auto;grid-column:1/-1}
@@ -162,6 +190,16 @@ kbd{font-family:var(--body);font-weight:700;font-size:.78rem;letter-spacing:.06e
   </div>
 </div>
 <div id="boss" hidden><div class="name">Bone Dragon</div><div class="bar"><span id="boss-fill"></span></div></div>
+<div id="touch" hidden>
+  <div id="t-zone"></div>
+  <div id="t-stickL" class="stick" hidden><i></i></div>
+  <div id="t-stickR" class="stick" aria-label="Aim and reap"><i></i><span>Reap</span></div>
+  <button class="tb" id="t-roll" type="button">Roll</button>
+  <button class="tb" id="t-raise" type="button">Raise</button>
+  <button class="tb" id="t-cmd" type="button">Lead</button>
+  <button class="tb" id="t-fire" type="button" hidden>Fire</button>
+  <div class="t-top"><button class="tb" id="t-zout" type="button" aria-label="Zoom out">−</button><button class="tb" id="t-zin" type="button" aria-label="Zoom in">+</button><button class="tb" id="t-pause" type="button" aria-label="Pause">II</button></div>
+</div>
 <div id="hint" hidden>WASD move · Mouse aim · Click reap · Space roll · Shift command risen · Right click necromance · Wheel zoom · E forge</div>
 <div id="tutor" hidden></div>
 <div id="toast"></div>
@@ -853,7 +891,7 @@ function killEnemy(e,ang,src,owner){
   const d=DEF[e.type];
   e.dead=true;sfx.die();
   if(!e.ally&&e.gid){const g=groups.get(e.gid);if(g){g.alive--;
-    if(g.alive<=0&&g.size>=2&&squadHints<3&&state==='play'){squadHints++;toast('Squad broken. Right click near their bones to necromance them','#8fd0ff')}}}
+    if(g.alive<=0&&g.size>=2&&squadHints<3&&state==='play'){squadHints++;toast(IS_TOUCH?'Squad broken. Tap Raise near their bones to necromance them':'Squad broken. Right click near their bones to necromance them','#8fd0ff')}}}
   if(!e.ally){kills++;souls.push({id:++entId,type:d.soul,x:e.x,y:e.y,vx:rand(-40,40),vy:rand(-40,40),t:R()*5,age:0})}
   const big=e.type==='dragon',again=!e.ally||R()<stats().rerise,cid=again?addCorpse(e,true):0,bl=again?1e9:rand(5,8);
   const n=big?26:e.type==='giant'||e.type==='brute'?12:e.type==='leader'?8:e.type==='dog'?5:6,sc=big?2:Math.sqrt(d.s);
@@ -935,11 +973,13 @@ function updPlayer(dt){
   const st=stats();
   pl.inv-=dt;pl.flash-=dt;pl.rollCd-=dt;pl.atkCd-=dt;pl.sinceHurt+=dt;pl.hold-=dt;pl.sfCd-=dt;raiseCd-=dt;
   if(!pl.alive){pl.vx=pl.vy=0;return}
-  if(mouse.seen){const m=screenToWorld(mouse.x,mouse.y);pl.aim=Math.atan2(m.y-(pl.y-24*PS),m.x-pl.x)}
+  if(mouse.seen&&!TC.on){const m=screenToWorld(mouse.x,mouse.y);pl.aim=Math.atan2(m.y-(pl.y-24*PS),m.x-pl.x)}
   let ix=(K.KeyD||K.ArrowRight?1:0)-(K.KeyA||K.ArrowLeft?1:0),iy=(K.KeyS||K.ArrowDown?1:0)-(K.KeyW||K.ArrowUp?1:0);
+  if(TC.on&&(TC.mx||TC.my)){ix=TC.mx;iy=TC.my}
   const il=Math.hypot(ix,iy);if(il){ix/=il;iy/=il}
+  if(TC.on)touchAim(ix,iy);
   pl.sprint=false;
-  if(K.ShiftLeft||K.ShiftRight){const m=screenToWorld(mouse.x,mouse.y);if(command.t<=0)for(const a of enemies)if(a.ally)a.retgt=0;command.x=clamp(m.x,40,WORLD-40);command.y=clamp(m.y,40,WORLD-40);command.t=2.5}
+  if(K.ShiftLeft||K.ShiftRight||TC.cmd){const m=TC.on?{x:pl.x+Math.cos(pl.aim)*260,y:pl.y+Math.sin(pl.aim)*200}:screenToWorld(mouse.x,mouse.y);if(command.t<=0)for(const a of enemies)if(a.ally)a.retgt=0;command.x=clamp(m.x,40,WORLD-40);command.y=clamp(m.y,40,WORLD-40);command.t=2.5}
   if(raisePressed)tryRaise();raisePressed=false;
   if(firePressed&&up.soulfire>0&&pl.sfCd<=0&&pl.rollT<=0){pl.sfT=1.5;pl.sfCd=st.sfCd;pl.sfTick=0;sfx.soulfire()}
   firePressed=false;
@@ -954,7 +994,7 @@ function updPlayer(dt){
       let sp=160;if(pl.atkT>0)sp*=.45;if(pl.sfT>0)sp*=.5;
       const a=Math.min(1,12*dt);pl.vx+=(ix*sp-pl.vx)*a;pl.vy+=(iy*sp-pl.vy)*a;
       if(pl.sprint&&R()<.25)parts.push({k:'dust',x:pl.x-ix*8+rand(-4,4),y:pl.y+rand(-2,2),vx:-ix*20,vy:-iy*20,life:.45,max:.45,sz:rand(4,8)});
-      if((mouse.down||K.KeyJ)&&pl.atkCd<=0&&pl.atkT<=0){
+      if((mouse.down||K.KeyJ||TC.atk)&&pl.atkCd<=0&&pl.atkT<=0){
         pl.atkT=st.swing;pl.atkCd=st.cd;pl.swingDir*=-1;pl.aim0=pl.aim;pl.hitSet=new Set();pl.trail=[];
         pl.wang=pl.aim0-pl.swingDir*st.arc/2;pl.bs=-pl.swingDir;pl.ext=1;sfx.swing();
       }
@@ -1694,7 +1734,8 @@ function render(){
   if(state!=='title')drawMinimap();
 }
 function drawMinimap(){
-  const s=W<620?96:140,x=W-s-16,y=H-s-16,k=s/WORLD;
+  const sat=parseFloat(getComputedStyle(document.documentElement).paddingTop)||0,short=IS_TOUCH&&H<=520;
+  const s=W<620||IS_TOUCH?96:140,x=short?W/2-s/2:W-s-16,y=short?sat+12:IS_TOUCH?sat+150:H-s-16,k=s/WORLD;
   ctx.fillStyle='rgba(8,8,11,.72)';ctx.fillRect(x,y,s,s);ctx.strokeStyle='rgba(236,229,210,.45)';ctx.lineWidth=1.5;ctx.strokeRect(x+.5,y+.5,s-1,s-1);
   ctx.fillStyle='rgba(236,229,210,.06)';const vwid=W/Z*k,vhei=H/Z*k;ctx.fillRect(x+cam.x*k-vwid/2,y+cam.y*k-vhei/2,vwid,vhei);
   for(const e of enemies){const c=e.ally?(e.col||ALLY):e.type==='dragon'?'#59f0a6':DEF[e.type].soul==='titan'?'#ff5a3a':e.type==='leader'?'#c9a6ff':e.type==='knight'?'#e5b23a':'#bdb6a4',r=e.type==='dragon'?3.6:DEF[e.type].soul==='titan'?2.6:e.type==='leader'?2:1.4;
@@ -1805,13 +1846,13 @@ function startTutorial(){
   for(let i=0;i<2;i++){const d=440+i*30,e=makeEnemy('troop',clamp(pl.x+Math.cos(a+i*.25)*d,80,WORLD-80),clamp(pl.y+Math.sin(a+i*.25)*d*.8,80,WORLD-80),1);
     e.state='chase';e.gid=gid;e.tgt=PLAYER;e.retgt=1;e.ox=0;e.oy=0;g.alive++;g.size++;enemies.push(e)}
   tut={stage:0,t:0,gid};squadHints=3;
-  tutor('<small>Two of the dead approach</small><kbd>Left click</kbd> to attack &nbsp;·&nbsp; <kbd>Space</kbd> to dodge');
+  tutor(IS_TOUCH?'<small>Two of the dead approach</small>Drag the <kbd>Reap</kbd> stick to attack &nbsp;·&nbsp; <kbd>Roll</kbd> to dodge':'<small>Two of the dead approach</small><kbd>Left click</kbd> to attack &nbsp;·&nbsp; <kbd>Space</kbd> to dodge');
 }
 function updTutorial(dt){
   if(tut.stage<0)return;
   const g=groups.get(tut.gid);
-  if(tut.stage===0){if(g)g.alert=999;if(!g||g.alive<=0){tut.stage=1;tutor('<small>Their squad is broken</small><kbd>Right click</kbd> near their bones to <b>necromance</b>')}}
-  else if(tut.stage===1){if(enemies.some(e=>e.ally)){tut.stage=2;tutor('<small>They are yours now</small>Hold <kbd>Shift</kbd> to send your <b>risen</b> toward the cursor')}}
+  if(tut.stage===0){if(g)g.alert=999;if(!g||g.alive<=0){tut.stage=1;tutor(IS_TOUCH?'<small>Their squad is broken</small>Tap <kbd>Raise</kbd> near their bones to <b>necromance</b>':'<small>Their squad is broken</small><kbd>Right click</kbd> near their bones to <b>necromance</b>')}}
+  else if(tut.stage===1){if(enemies.some(e=>e.ally)){tut.stage=2;tutor(IS_TOUCH?'<small>They are yours now</small>Hold <kbd>Lead</kbd> to send your <b>risen</b> where you aim':'<small>They are yours now</small>Hold <kbd>Shift</kbd> to send your <b>risen</b> toward the cursor')}}
   else if(tut.stage===2){if(command.t>0){tut.stage=3;tut.t=2.4;tutor('<small>The waste awaits</small>Reap, raise, and rule')}}
   else{tut.t-=dt;if(tut.t<=0){tut.stage=-1;$('tutor').hidden=true;squadHints=0;hint.hidden=false;hint.style.opacity=1;setTimeout(()=>hint.style.opacity=0,10000)}}
 }
@@ -2233,6 +2274,77 @@ const PeerNet=(()=>{
 })();
 (async()=>{let api=null;try{const c=window.claude;if(c&&c.use)api=await c.use('room');else if(window.Peer)api=PeerNet}catch(e){api=null}NET.api=api;NET.apiReady=true;if(!$('mp').hidden&&!NET.active)openMP()})();
 
+// ===================================================================== touch controls
+// Left thumb: a stick that appears wherever it lands. Right thumb: a fixed stick that aims and reaps
+// while dragged, or strikes the nearest foe on a tap. Roll, Raise, Lead and Fire sit in an arc beside it.
+const IS_TOUCH=matchMedia('(hover: none) and (pointer: coarse)').matches;
+const TC={on:IS_TOUCH,mx:0,my:0,moveId:null,ox:0,oy:0,aimId:null,aimOn:false,aimAng:0,tapUntil:-1,cmd:false,atk:false,rcx:0,rcy:0,rMoved:false};
+const STICK_R=48;
+function touchAim(ix,iy){
+  if(TC.aimOn)pl.aim=TC.aimAng;
+  else{
+    let best=null,bd=250;const by=pl.y-24*PS;
+    for(const e of playerTargets()){const c=nearC(circlesOf(e),pl.x,by),d=Math.hypot(c.x-pl.x,c.y-by);if(d<bd){bd=d;best=c}}
+    if(best)pl.aim=Math.atan2(best.y-by,best.x-pl.x);else if(ix||iy)pl.aim=Math.atan2(iy,ix);
+  }
+  TC.atk=TC.aimOn||T<TC.tapUntil;
+}
+function touchText(){
+  if(!IS_TOUCH)return;
+  document.body.classList.add('touch');
+  const keys=document.querySelector('.keys');
+  if(keys)keys.innerHTML=[['Left thumb','Move, from anywhere on the left side'],['Reap stick','Drag to aim and swing. Tap to strike the nearest foe'],['Roll','Dodge. Nothing touches you mid-roll'],
+    ['Raise','Necromance the bones of a squad you have wiped out'],['Lead','Hold to send your risen ahead of you'],['Soul Forge','The button at the top right'],['Fire','Soulfire, once you have earned it']]
+    .map(([k,v])=>`<kbd>${k}</kbd><span>${v}</span>`).join('');
+  const foot=[...document.querySelectorAll('#title .small')].pop();if(foot)foot.textContent='Turn your phone sideways for the widest view.';
+  hint.textContent='Left thumb moves · Reap stick aims and swings · Roll dodges · Raise necromances · Hold Lead to send your risen';
+}
+(function(){
+  if(!IS_TOUCH)return;
+  const zone=$('t-zone'),stL=$('t-stickL'),knL=stL.firstElementChild,stR=$('t-stickR'),knR=stR.firstElementChild;
+  zone.addEventListener('pointerdown',e=>{
+    if(TC.moveId!==null)return;TC.moveId=e.pointerId;try{zone.setPointerCapture(e.pointerId)}catch(x){}
+    TC.ox=e.clientX;TC.oy=e.clientY;stL.style.left=e.clientX+'px';stL.style.top=e.clientY+'px';knL.style.transform='';stL.hidden=false;e.preventDefault();
+  });
+  zone.addEventListener('pointermove',e=>{
+    if(e.pointerId!==TC.moveId)return;let dx=e.clientX-TC.ox,dy=e.clientY-TC.oy;const d=Math.hypot(dx,dy);
+    if(d>STICK_R){dx*=STICK_R/d;dy*=STICK_R/d}knL.style.transform=`translate(${dx}px,${dy}px)`;
+    const on=Math.hypot(dx,dy)/STICK_R>.18;TC.mx=on?dx/STICK_R:0;TC.my=on?dy/STICK_R:0;
+  });
+  const endL=e=>{if(e.pointerId!==TC.moveId)return;TC.moveId=null;TC.mx=TC.my=0;stL.hidden=true};
+  zone.addEventListener('pointerup',endL);zone.addEventListener('pointercancel',endL);
+  const moveR=e=>{let dx=e.clientX-TC.rcx,dy=e.clientY-TC.rcy;const d=Math.hypot(dx,dy);if(d>STICK_R){dx*=STICK_R/d;dy*=STICK_R/d}
+    knR.style.transform=`translate(${dx}px,${dy}px)`;if(d>14){TC.aimOn=true;TC.rMoved=true;TC.aimAng=Math.atan2(dy,dx)}else TC.aimOn=false};
+  stR.addEventListener('pointerdown',e=>{
+    if(TC.aimId!==null)return;TC.aimId=e.pointerId;try{stR.setPointerCapture(e.pointerId)}catch(x){}
+    const r=stR.getBoundingClientRect();TC.rcx=r.left+r.width/2;TC.rcy=r.top+r.height/2;TC.rMoved=false;moveR(e);e.preventDefault();
+  });
+  stR.addEventListener('pointermove',e=>{if(e.pointerId===TC.aimId)moveR(e)});
+  const endR=e=>{if(e.pointerId!==TC.aimId)return;TC.aimId=null;TC.aimOn=false;knR.style.transform='';if(!TC.rMoved)TC.tapUntil=T+.3};
+  stR.addEventListener('pointerup',endR);stR.addEventListener('pointercancel',endR);
+  const hold=(id,on,off)=>{const b=$(id);
+    b.addEventListener('pointerdown',e=>{e.preventDefault();try{b.setPointerCapture(e.pointerId)}catch(x){}b.classList.add('on');on()});
+    const up=()=>{b.classList.remove('on');if(off)off()};b.addEventListener('pointerup',up);b.addEventListener('pointercancel',up)};
+  hold('t-roll',()=>{if(state==='play')rollPressed=true});
+  hold('t-raise',()=>{if(state==='play')raisePressed=true});
+  hold('t-cmd',()=>{TC.cmd=true},()=>{TC.cmd=false});
+  hold('t-fire',()=>{if(state==='play')firePressed=true});
+  hold('t-zin',()=>{zoomMul=clamp(zoomMul*1.15,.55,1.9)});
+  hold('t-zout',()=>{zoomMul=clamp(zoomMul/1.15,.55,1.9)});
+  hold('t-pause',()=>{if(state==='play')pause()});
+  for(const el of[$('touch'),cvs])el.addEventListener('contextmenu',e=>e.preventDefault());
+  touchText();
+})();
+function updTouch(){
+  if(!IS_TOUCH)return;
+  const show=state==='play',el=$('touch');if(el.hidden===show)el.hidden=!show;
+  if(!show){TC.moveId=null;TC.aimId=null;TC.mx=TC.my=0;TC.aimOn=false;TC.cmd=false;$('t-stickL').hidden=true;return}
+  const f=$('t-fire');if(f.hidden!==!up.soulfire)f.hidden=!up.soulfire;f.classList.toggle('cd',pl.sfCd>0&&pl.sfT<=0);
+  $('t-roll').classList.toggle('cd',pl.rollCd>0);
+  // keep the zoom and pause row tucked under the health panel, however the souls row wraps
+  const vb=Math.round(document.querySelector('.vital').getBoundingClientRect().bottom+10),tt=document.querySelector('.t-top');if(tt.dataset.top!=vb){tt.dataset.top=vb;tt.style.top=vb+'px'}
+}
+
 // ===================================================================== input
 addEventListener('keydown',e=>{
   if(e.target&&e.target.tagName==='INPUT'){if(e.key==='Enter'&&e.target.id==='mp-code')joinRoom(e.target.value,false);return}
@@ -2264,6 +2376,7 @@ function frame(now){
     if(state==='play'||state==='title'||NET.active){if(hitStop>0&&!NET.active){hitStop-=dt;T+=dt}else updWorld(dt)}
     render();
     if(state!=='title'){updHud();updRoomTag()}
+    updTouch();
     if(NET.active)updateLobby();
   }catch(err){console.error(err)}
   requestAnimationFrame(frame);

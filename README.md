@@ -28,3 +28,7 @@ No account is needed. Players connect browser-to-browser over WebRTC, using the 
 | Mouse wheel, + / − | Zoom |
 | M | Mute |
 | Esc | Pause (in a room, the world keeps going) |
+
+## On phones and tablets
+
+Touch controls appear automatically. Drag anywhere on the left side to move. Drag the **Reap** stick at the bottom right to aim and swing, or tap it to strike the nearest foe. **Roll**, **Raise** (necromance), **Lead** (hold to send your risen ahead) and **Fire** (Soulfire) sit beside it, with zoom and pause buttons under the health bar. Landscape gives the widest view.
