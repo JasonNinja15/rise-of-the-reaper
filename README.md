@@ -1,0 +1,30 @@
+# Rise of the Reaper
+
+A top-down skeleton-slaying game for one to six players. Reap the bone legion with your scythe, necromance broken squads into your own army, and spend their souls in the Soul Forge.
+
+**Play:** https://jasonninja15.github.io/rise-of-the-reaper/
+
+## Playing together
+
+1. One player opens the game, presses **Play together**, picks **Co-op** or **PvP + PvE**, and presses **Create room**.
+2. Share the five-character room code.
+3. Everyone else presses **Play together**, types the code, and presses **Join**.
+4. The host presses **Begin the Harvest**. Players who join later drop straight into the running game.
+
+No account is needed. Players connect browser-to-browser over WebRTC, using the free public [PeerJS](https://peerjs.com) server to find each other. The room's creator hosts the dead, so if the host leaves, the room closes. Some strict school or office networks block these direct connections.
+
+## Controls
+
+| Key | Action |
+| --- | --- |
+| W A S D | Move |
+| Mouse | Aim the scythe |
+| Left click / J | Sweeping reap (hold to keep swinging) |
+| Space | Roll |
+| Right click | Necromance the bones of a squad you have wiped out |
+| Shift (hold) | Send your risen toward the cursor |
+| E | Soul Forge |
+| Q | Soulfire, once you have earned it |
+| Mouse wheel, + / − | Zoom |
+| M | Mute |
+| Esc | Pause (in a room, the world keeps going) |
