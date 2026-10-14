@@ -71,6 +71,8 @@ body{background:var(--abyss);color:var(--bone);font-family:var(--body);font-size
 
 .overlay{position:fixed;inset:0;display:grid;place-items:center;padding:24px 16px;overflow:auto;background:radial-gradient(ellipse at center,rgba(6,6,9,.6),rgba(6,6,9,.93))}
 .overlay.side{place-items:center start;background:linear-gradient(90deg,rgba(6,6,9,.95) 0%,rgba(6,6,9,.85) 36%,rgba(6,6,9,0) 58%)}
+.overlay.soft{background:linear-gradient(rgba(6,6,9,.55),rgba(6,6,9,0) 45%);place-items:start center;padding-top:calc(env(safe-area-inset-top,0px) + 12vh);pointer-events:none}
+.overlay.soft .panel{pointer-events:auto;max-width:420px;background:rgba(14,14,19,.8)}
 .panel{width:100%;max-width:540px;display:grid;gap:15px;padding-inline:clamp(0px,4vw,48px)}
 .panel.box{background:var(--panel);border:2px solid var(--line);border-radius:4px 22px 4px 22px;padding:24px;box-shadow:0 0 0 2px var(--ink),0 20px 60px rgba(0,0,0,.6)}
 h1,h2{font-family:var(--display);font-weight:400;text-wrap:balance;margin:0;line-height:.95}
@@ -235,9 +237,9 @@ kbd{font-family:var(--body);font-weight:700;font-size:.78rem;letter-spacing:.06e
 
 <div class="overlay" id="dead" hidden>
   <div class="panel box" style="text-align:center;justify-items:center">
-    <h2>The Reaper Falls</h2>
-    <p class="lede">The legion closes over your bones. They will not keep you down for long.</p>
-    <div class="stats">
+    <h2 id="dead-h">The Reaper Falls</h2>
+    <p class="lede" id="dead-lede">The legion closes over your bones. They will not keep you down for long.</p>
+    <div class="stats" id="dead-stats">
       <div><b id="d-time">0:00</b><span>Reigned</span></div>
       <div><b id="d-kills">0</b><span>Reaped</span></div>
       <div><b id="d-ess">0</b><span>Essence</span></div>
@@ -872,7 +874,7 @@ function hurtPlayer(dmg,ang){
   shake=Math.max(shake,5);sfx.hurt();
   nums.push({x:pl.x,y:pl.y-58,v:-50,life:.9,txt:Math.round(dmg),col:'#ff6b5e'});
   if(pl.hp<=0){
-    pl.hp=0;pl.alive=false;deadT=1.8;pl.sfT=0;
+    pl.hp=0;pl.alive=false;deadT=1.8;pl.sfT=0;pl.respawnT=7;
     for(let i=0;i<9;i++)parts.push({k:'bone',x:pl.x,y:pl.y,z:rand(8,30),vz:rand(60,220),vx:rand(-130,130),vy:rand(-130,130),rot:R()*TAU,vr:rand(-14,14),life:30,max:30,sz:rand(.8,1.2),col:BONE});
     parts.push({k:'cloak',x:pl.x,y:pl.y,z:0,vz:0,vx:0,vy:0,rot:0,vr:0,life:30,max:30,sz:1});
     parts.push({k:'skull',x:pl.x,y:pl.y,z:40,vz:140,vx:rand(-60,60),vy:rand(-60,60),rot:0,vr:5,life:30,max:30,sz:1.1,type:'player'});
@@ -1266,7 +1268,7 @@ function updWorld(dt){
     if(spawnT<=0&&anyAlive){spawnT=rand(3.5,6.5)*Math.max(.5,1-elapsed/900)/(1+.5*(np-1));if(nh<maxE)spawnGroup(false);else spawnT=1}
     if(anyAlive&&elapsed>360&&dragonsSpawned===0)spawnGroup(false,'dragon');
   }
-  if(NET.active)netTick(dt);
+  if(NET.active){netTick(dt);mpDeathTick(dt)}
   for(const e of enemies)updEnemy(e,dt);
   separate();
   updRaising(dt);
@@ -1769,11 +1771,33 @@ function showBest(){const b=loadBest();$('best').textContent=b?`Longest reign ${
 function showDeath(){
   $('tutor').hidden=true;tut.stage=-1;
   state='dead';$('dead').hidden=false;$('boss').hidden=true;$('d-time').textContent=fmt(elapsed);$('d-kills').textContent=kills;$('d-ess').textContent=essenceTotal;
+  const mp=NET.active&&NET.started;
+  $('dead').classList.toggle('soft',mp);$('again').hidden=mp;$('dead-stats').hidden=mp;
+  $('dead-h').textContent='The Reaper Falls';
+  $('dead-lede').textContent=mp?'Your risen fight on without you.':'The legion closes over your bones. They will not keep you down for long.';
   const b=loadBest();let msg='';
-  if(NET.active)msg='Rise again to rejoin the room.';else if(!b||elapsed>b.time){saveBest({time:elapsed,kills});msg=b?'A new longest reign.':''}else msg=`Longest reign ${fmt(b.time)} · ${b.kills} reaped`;
-  $('d-best').textContent=msg;$('again').focus();
+  if(mp)msg=`Rising again in ${Math.max(1,Math.ceil(pl.respawnT||0))}…`;else if(!b||elapsed>b.time){saveBest({time:elapsed,kills});msg=b?'A new longest reign.':''}else msg=`Longest reign ${fmt(b.time)} · ${b.kills} reaped`;
+  $('d-best').textContent=msg;if(!mp)$('again').focus();
 }
-// every game opens with two troops walking straight at the reaper, and a few large prompts
+// in a room the run ends only when every reaper is down at once; the host calls it for everyone
+function gameOver(){
+  NET.over=true;state='dead';for(const id of['pause','forge','tutor'])$(id).hidden=true;
+  $('dead').hidden=false;$('dead').classList.remove('soft');$('again').hidden=true;$('dead-stats').hidden=false;
+  $('dead-h').textContent='The Legion Prevails';$('dead-lede').textContent='Every reaper has fallen at once. The dead march on over your bones.';
+  $('d-time').textContent=fmt(elapsed);$('d-kills').textContent=kills;$('d-ess').textContent=essenceTotal;
+  $('d-best').textContent='';$('d-leave').hidden=false;$('d-leave').textContent='Back to the title';$('d-leave').focus();
+}
+function mpDeathTick(dt){
+  if(!NET.active||!NET.started||NET.over)return;
+  if(!pl.alive){pl.respawnT=(pl.respawnT??7)-dt;
+    if(state==='dead'&&!$('dead').hidden)$('d-best').textContent=`Rising again in ${Math.max(1,Math.ceil(pl.respawnT))}…`;
+    if(pl.respawnT<=0){respawnMP();return}}
+  if(NET.host){
+    let all=!pl.alive;if(all)for(const r of NET.remotes.values())if(!r.player.gone&&r.player.alive){all=false;break}
+    NET.allDeadT=all?(NET.allDeadT||0)+dt:0;
+    if(NET.allDeadT>.6)gameOver();
+  }
+}
 let tut={stage:-1,t:0,gid:0};
 function tutor(html){const el=$('tutor');el.innerHTML=html;el.hidden=false;el.style.animation='none';void el.offsetWidth;el.style.animation=''}
 function startTutorial(){
@@ -1941,7 +1965,7 @@ function encWorld(){
   const E=live?enemies.filter(e=>!e.ally&&!e.dead&&near(e.x,e.y,1300)).sort((a,b)=>nd(a)-nd(b)).map(encEnt):[];
   const S=live?souls.filter(s=>!s.got&&near(s.x,s.y,1300)).map(s=>[s.id,SKEYS.indexOf(s.type),Math.round(s.x),Math.round(s.y)]):[];
   const C=live?corpses.filter(c=>!c.dead&&!c.own&&near(c.x,c.y,1500)).map(c=>[c.id,TYPES.indexOf(c.type),Math.round(c.x),Math.round(c.y),c.face,c.raisable&&!c.raiseT&&groupCleared(c.gid)?1:0]):[];
-  return{st:live?1:0,md:NET.mode,sd:NET.seed,ws:WORLD,T:Math.round(elapsed),E,S,C,G:outList('G')};
+  return{st:live?1:0,go:NET.over?1:0,md:NET.mode,sd:NET.seed,ws:WORLD,T:Math.round(elapsed),E,S,C,G:outList('G')};
 }
 // presence must stay under 4 KiB: trim the longest list (newest events are kept, nearest creatures are kept)
 function fit(o,keys){
@@ -2004,7 +2028,8 @@ function grantRaise(peer,x,y,range){
 }
 function applyWorld(hp,w){
   NET.mode=w.md==='pvp'?'pvp':'coop';
-  if(!NET.started){if(w.st&&NET.ready)startMP(w.sd|0,w.ws|0);return}
+  if(!NET.started){if(w.st&&!w.go&&NET.ready)startMP(w.sd|0,w.ws|0);return}
+  if(w.go&&!NET.over){gameOver();return}
   elapsed=+w.T||elapsed;
   for(const g of freshFrom(hp,'G',w.G)){
     if(g[1]!==NET.me)continue;
@@ -2038,7 +2063,7 @@ function placeSpawn(){
   collideRocks(pl,11);
 }
 function startMP(seed,ws){
-  NET.started=true;NET.seed=seed;WORLD=clamp(ws||5200,5200,13000);genWorld(seed);
+  NET.started=true;NET.over=false;NET.allDeadT=0;NET.seed=seed;WORLD=clamp(ws||5200,5200,13000);genWorld(seed);
   initAudio();if(AC&&AC.state==='suspended')AC.resume();
   pl=newPlayer();enemies=[];souls=[];parts=[];flames=[];nums=[];effects=[];corpses=[];NET.mirrors=new Map();
   elapsed=0;kills=0;essenceTotal=0;spawnT=3;deadT=0;hurtFlash=0;dragonsSpawned=0;raiseCd=0;groups=new Map();squadHints=0;tut.stage=-1;command.t=0;
@@ -2052,9 +2077,10 @@ function startMP(seed,ws){
   cvs.tabIndex=0;cvs.focus();
 }
 function respawnMP(){
-  pl=newPlayer();placeSpawn();pl.eye=PCOL[NET.color];
-  enemies=enemies.filter(e=>!e.ally);counts={wisp:0,gilded:0,wraith:0,titan:0,dragon:0};up={range:0,rerise:0,lstr:0,lhp:0,soulfire:0};
-  state='play';$('dead').hidden=true;cvs.focus();
+  // souls, upgrades and the risen all carry over; only the reaper's own body is remade
+  const keep={eye:PCOL[NET.color]};pl=newPlayer();placeSpawn();pl.eye=keep.eye;pl.inv=1.5;
+  for(const a of enemies)if(a.ally&&a.state==='idle'){a.x=clamp(pl.x+rand(-60,60),40,WORLD-40);a.y=clamp(pl.y+rand(-40,40),40,WORLD-40)}
+  state='play';$('dead').hidden=true;$('dead').classList.remove('soft');cvs.focus();toast('You rise again','#ece5d2');
 }
 async function leaveRooms(){
   const r=NET.room,w=NET.world;NET.room=null;NET.world=null;
@@ -2062,7 +2088,8 @@ async function leaveRooms(){
 }
 function endRoom(msg){
   leaveRooms();
-  Object.assign(NET,{active:false,started:false,ready:false,host:false,code:'',me:'',remotes:new Map(),mirrors:new Map(),lastP:new Map(),lastW:null,rl:[],rlT:-1,lobbySig:''});
+  $('again').hidden=false;$('dead-stats').hidden=false;$('dead').classList.remove('soft');$('d-leave').textContent='Leave room';
+  Object.assign(NET,{over:false,allDeadT:0,active:false,started:false,ready:false,host:false,code:'',me:'',remotes:new Map(),mirrors:new Map(),lastP:new Map(),lastW:null,rl:[],rlT:-1,lobbySig:''});
   WORLD=5200;genWorld(1337);showcase();state='title';
   for(const id of['mp','dead','pause','forge'])$(id).hidden=true;$('title').hidden=false;hud.hidden=true;hint.hidden=true;$('boss').hidden=true;
   $('p-leave').hidden=true;$('d-leave').hidden=true;
