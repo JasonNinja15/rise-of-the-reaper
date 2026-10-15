@@ -4,6 +4,15 @@ A top-down skeleton-slaying game for one to six players. Reap the bone legion wi
 
 **Play:** https://jasonninja15.github.io/rise-of-the-reaper/
 
+## On a Chromebook
+
+Two ways to keep the game without needing the site every time:
+
+- **Install it as an app.** Open the game in Chrome, then click the install icon at the right end of the address bar (or **⋮ → Cast, save, and share → Install page as app**). It gets its own icon in the launcher and opens in its own window. Once it has loaded one time, solo play works with no internet.
+- **Download the file.** Click **Download to play offline** on the title screen. It saves `rise-of-the-reaper.html` to your Downloads. Open it from the **Files** app (double-click, or right-click → Open with → Chrome) any time.
+
+Solo play needs nothing else. Playing together still needs an internet connection. If your school has blocked the site, downloads, or app installs on a managed Chromebook, those rules apply. Ask your IT admin rather than working around them.
+
 ## Playing together
 
 1. One player opens the game, presses **Play together**, picks **Co-op** or **PvP + PvE**, and presses **Create room**.
