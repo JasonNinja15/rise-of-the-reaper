@@ -1,6 +1,6 @@
 // Keeps Rise of the Reaper playable offline. Serves the cached copy first and refreshes it from the
 // network in the background, so a new version shows up on the visit after it was published.
-const CACHE = 'rotr-v1';
+const CACHE = 'rotr-v2';
 const CORE = ['./', './index.html', './rise-of-the-reaper.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-maskable-512.png'];
 
 self.addEventListener('install', e => {
